@@ -1,0 +1,1199 @@
+<!doctype html>
+<html lang="es">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo Tejón Shop - Pokémon TCG</title>
+    <!-- Tipografía retro (Press Start 2P) para títulos y labels -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script>
+        // Cargar SDKs solo si están disponibles en el proyecto (evita 404s cuando se usa Live Server)
+        (function loadIfExists(path){
+            try{
+                fetch(path, {method: 'HEAD'}).then(function(res){
+                    if(res && res.ok){
+                        var s = document.createElement('script');
+                        s.src = path;
+                        s.defer = true;
+                        document.head.appendChild(s);
+                    }
+                }).catch(function(){ /* silencio: no disponible */ });
+            }catch(e){ /* entorno sin fetch */ }
+        })("_sdk/element_sdk.js");
+    </script>
+  <style>
+        :root{
+            /* Cambié la paleta a tonos azules/indigo más neutros en lugar del verde */
+            --retro-bg-1: #263248; /* deep indigo */
+            --retro-bg-2: #182233;
+            /* Control global de escala UI: 0.7 = 70%, 0.85 = 85% (ajusta según prefieras) */
+            --site-zoom: 0.85;
+            --retro-accent: #f2c94c; /* warm accent dorado */
+            --retro-dark: #0b1620;
+            --retro-card: #f7f3e7;
+        }
+
+        body {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            /* Paleta retro: verde Game Boy suave con textura sutil */
+            background: linear-gradient(180deg, var(--retro-bg-1) 0%, var(--retro-bg-2) 100%);
+            color: #222;
+            height: 100%;
+            overflow-x: hidden;
+            /* ligero pixel feel */
+            image-rendering: -webkit-optimize-contrast;
+            -webkit-font-smoothing: none;
+            -moz-osx-font-smoothing: grayscale;
+                /* Scale the entire UI slightly smaller to improve visibility on large viewports.
+                    Uses non-standard `zoom` where available; a transform fallback is provided below. */
+                zoom: var(--site-zoom);
+        }
+
+        /* Consola / Bezel: crea la sensación de estar dentro de una pantalla */
+        .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Marco externo tipo consola (bezel) */
+        .container::before{
+            content: '';
+            position: absolute;
+            top: -20px; left: -20px; right: -20px; bottom: -20px;
+            border-radius: 12px;
+            background: linear-gradient(180deg,#597ea3,#2c3e50);
+            box-shadow: 0 14px 0 rgba(0,0,0,0.45), inset 0 6px 0 rgba(255,255,255,0.02);
+            z-index: -2;
+        }
+
+        /* Scanlines sutiles y vignette para dar sensación de pantalla retro */
+        .container::after{
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 8px;
+            pointer-events: none;
+            background-image: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0px, rgba(0,0,0,0.04) 1px, rgba(0,0,0,0) 2px);
+            mix-blend-mode: multiply;
+            opacity: 0.07;
+            z-index: 3;
+        }
+
+        /* Pequeña vibración/scanline animada (muy sutil) */
+        @keyframes scanFlicker {
+            0% { opacity: 0.06; }
+            50% { opacity: 0.09; }
+            100% { opacity: 0.06; }
+        }
+        .container::after{ animation: scanFlicker 3.5s infinite linear; }
+
+    /* Asegurar que el logo NO se pixelice y las imágenes de producto se mantienen claras */
+    .logo .site-logo { image-rendering: auto; }
+        /* UI elements get sharper pixel edges */
+        .nav-btn, .product-card, .back-btn { image-rendering: -webkit-optimize-contrast; }
+
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100%;
+        }
+
+            /* Fallback for browsers that don't support `zoom` (e.g., Firefox) */
+            @supports not (zoom: 1) {
+                .scale-fallback {
+                    transform: scale(var(--site-zoom));
+                    transform-origin: 0 0;
+                    /* compensate width so scaled content fits the viewport */
+                    width: calc(100% / var(--site-zoom));
+                }
+            }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* Overlay pages: when active, sit above the main UI and cover it fully
+           to emulate the previous behavior where the section aparece encima del menú. */
+        .page.overlay {
+            display: none; /* explicit: overlays start hidden */
+        }
+
+        .page.overlay.active {
+            display: block;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            /* Soft tinted sheet using the retro palette (only color changed) */
+            background: linear-gradient(180deg, rgba(38,50,72,0.96), rgba(24,34,51,0.96));
+            padding: 28px;
+            overflow: auto;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.6);
+            border-radius: 0; /* full-bleed overlay */
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: transparent;
+            border: 1px solid rgba(0,0,0,0.08);
+            padding: 10px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 12px;
+            color: var(--retro-dark);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+        }
+
+    /* Place the back button on the overlay pages */
+    .page.overlay .section-header { position: relative; }
+    /* Align the back button to the left and center it vertically relative to the header rectangle */
+    .page.overlay .back-btn { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); }
+
+        /* Ensure section titles inside overlays use the retro font to match the design */
+        .page.overlay .section-title {
+            font-family: 'Press Start 2P', monospace;
+            text-align: center;
+            letter-spacing: 0.02em;
+        }
+
+        /* Smaller screens: reduce title size and keep enough left padding */
+        @media (max-width: 480px) {
+            .page.overlay .section-header { padding-left: 92px; }
+            .page.overlay .section-title { font-size: 20px; max-width: calc(100% - 120px); }
+            .page.overlay .back-btn { left: 10px; }
+            /* Make the back button smaller on narrow screens so it doesn't visually dominate
+               or risk overlapping longer titles. Kept accessible but compact. */
+            .page.overlay .back-btn {
+                font-size: 10px;
+                padding: 6px 10px;
+                border-radius: 6px;
+                gap: 6px;
+            }
+        }
+
+        /* Centrar verticalmente el contenido principal en la pantalla (home) */
+        #home {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 40px);
+            gap: 18px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            /* Usar el azul principal para la pestaña home para uniformidad */
+            background: var(--retro-bg-1);
+            color: #f3f6f9; /* texto claro para contraste */
+            border-radius: 20px;
+            padding: 22px; /* slightly smaller to tighten layout */
+            margin-bottom: 18px; /* reduce space below header */
+            /* shadow + white contour to match product card framing */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 0 6px #ffffff;
+            /* Sitúa la cabecera por encima de la nav-screen para evitar que su fondo se vea detrás del logo */
+            position: relative;
+            z-index: 3;
+        }
+
+        .logo {
+            width: 200px;
+            height: 200px;
+            /* Empujar ligeramente hacia abajo para que la línea roja superior no se vea sobre el óvalo */
+            margin: 18px auto 12px;
+            /* Fondo más neutro para evitar tonos rojos prominentes */
+            background: linear-gradient(45deg, #ffffff 0%, #f3f4f6 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            color: #2c3e50;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.04);
+        }
+
+        /* Logo image inside the circular logo container */
+        .site-logo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            /* No pixelar el logo para mantener nitidez y legibilidad */
+            image-rendering: auto;
+        }
+
+        /* Social links inside header */
+        .social-links {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .social-link {
+            display: inline-block;
+            padding: 2px 6px;
+            background: transparent; /* no roundel */
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+    /* PNG logos: keep natural aspect, set a comfortable height (larger for readability) */
+    .social-link img { height: 48px; width: auto; display: block; }
+
+        .shop-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--retro-dark);
+            margin: 8px 0 6px 0;
+            text-shadow: none;
+            /* Tipografía retro para el título */
+            font-family: 'Press Start 2P', 'Segoe UI', monospace;
+            letter-spacing: 1px;
+        }
+
+        /* Cuando el header tenga fondo oscuro, forzamos colores claros para legibilidad */
+        .header .shop-title { color: #ffffff; }
+        .header .shop-tagline { color: rgba(243,246,249,0.9); }
+        .header .contact-info { color: rgba(243,246,249,0.85); }
+
+        .shop-tagline {
+            font-size: 18px;
+            color: #7f8c8d;
+            margin: 0 0 20px 0;
+        }
+
+        .contact-info {
+            font-size: 16px;
+            color: #34495e;
+            font-weight: 500;
+        }
+
+        /* Navigation - modernized */
+        .nav-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between; /* spread buttons to use horizontal space */
+            gap: 18px;
+            margin: 10px auto 6px; /* tighten margins */
+            align-items: stretch; /* make buttons equal height */
+            max-width: 1100px; /* allow wider layout so buttons can be larger */
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 220px;
+            flex: 1 1 240px;
+            height: 104px;
+            padding: 14px 16px;
+            border-radius: 4px; /* más cuadrado, look retro */
+            border: 3px solid rgba(0,0,0,0.25);
+            color: white;
+            text-align: left;
+            cursor: pointer;
+            transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+            background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.04));
+            box-shadow: inset -4px -4px 0 rgba(0,0,0,0.06), 4px 4px 0 rgba(0,0,0,0.08);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        /* Ocultar el círculo de icono y dejar que el texto ocupe el espacio
+           El HTML mantiene <span class="icon"></span> para no modificar la estructura,
+           pero lo ocultamos aquí y hacemos que el contenido textual use flex-grow. */
+        .nav-btn .icon {
+            display: none;
+            width: 0;
+            height: 0;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Hacer que el bloque contenedor del label/sub ocupe todo el ancho restante */
+        .nav-btn > span:last-child {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex: 1 1 auto;
+        }
+
+        .nav-btn .label {
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.05;
+            display: block;
+            font-family: 'Press Start 2P', monospace; /* retro font only for text */
+        }
+
+        .nav-btn .sub {
+            display: block;
+            font-size: 10px;
+            color: rgba(255,255,255,0.95);
+            opacity: 0.95;
+            font-weight: 600;
+            font-family: 'Press Start 2P', monospace; /* subtle retro subtitle */
+            text-transform: none;
+        }
+
+        /* Nav screen: make the menu look like it's inside a GameBoy screen */
+        .nav-screen {
+            max-width: 1100px;
+            margin: 6px auto 12px;
+            padding: 12px;
+            border-radius: 12px;
+            background: linear-gradient(180deg,#2c3e50,#2c3e50);
+            border: 8px solid #ffffff; /* thick bezel */
+            box-shadow: inset -6px -6px 0 rgba(255,255,255,0.02), 0 10px 30px rgba(0,0,0,0.4);
+        }
+
+        .nav-screen-inner{
+            background: linear-gradient(180deg,#2c3e50,#2c3e50);
+            padding: 14px;
+            border-radius: 6px;
+            display: block;
+        }
+
+        /* Make buttons sit nicely inside the screen */
+        .nav-screen .nav-buttons{
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-6px) scale(1.01);
+            box-shadow: 0 14px 36px rgba(0,0,0,0.16);
+            filter: brightness(1.02);
+        }
+
+    .nav-btn.etb { background: linear-gradient(135deg, #ff6b6b 0%, #ff8a80 100%); }
+    .nav-btn.boxes { background: linear-gradient(135deg, #60c1d0 0%, #a8edea 100%); }
+    .nav-btn.premium { background: linear-gradient(135deg, #ffd166 0%, #ffecd2 100%); }
+    .nav-btn.special { background: linear-gradient(135deg, #9b59b6 0%, #764ba2 100%); }
+
+    /* Botones anteriormente 'clear' — ahora con color propio por categoría */
+    .nav-btn.clear {
+        color: white;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+        border: none;
+    }
+    .nav-btn.clear .icon { background: rgba(255,255,255,0.12); }
+    .nav-btn.clear:hover { transform: translateY(-6px) scale(1.01); filter: brightness(1.02); }
+
+    /* Variantes de color para los botones añadidos: latas, bundle, otros */
+    .nav-btn.clear.latas { background: linear-gradient(135deg, #ff9a64 0%, #ff6b6b 100%); }
+    .nav-btn.clear.latas .icon { background: rgba(255,255,255,0.12); }
+
+    .nav-btn.clear.bundle { background: linear-gradient(135deg, #6ee7b7 0%, #34d399 100%); color: #064e3b; }
+    .nav-btn.clear.bundle .icon { background: rgba(6,78,59,0.08); }
+
+    .nav-btn.clear.otros { background: linear-gradient(135deg, #60a5fa 0%, #7c3aed 100%); }
+    .nav-btn.clear.otros .icon { background: rgba(255,255,255,0.12); }
+
+        /* Back button */
+        .back-btn {
+            background: #34495e;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: #2c3e50;
+            transform: translateX(-5px);
+        }
+
+        /* Product sections */
+        .section-header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 22px 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            position: relative; /* para watermark */
+            /* Use flex to center title when description is absent */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 72px; /* ensures adequate vertical space for centered title */
+        }
+
+        /* Tema Pokémon sutil (estético) - no cambia la estructura ni apariencia de los productos */
+        /* Cabecera: removido el borde-top rojo para evitar que sobresalga sobre el logo */
+        .header {
+            position: relative;
+            /* white contour similar to product card framing */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2), 0 0 0 6px #ffffff;
+            border-radius: 20px;
+        }
+
+        /* removed mini pokéball decoration */
+
+        /* Colores y pequeños toques en los botones de navegación para reforzar la paleta Pokémon */
+        .nav-btn.etb { background: linear-gradient(135deg, #ff6b6b 0%, #ff8a80 100%); }
+        .nav-btn.boxes { background: linear-gradient(135deg, #60c1d0 0%, #a8edea 100%); }
+        .nav-btn.premium { background: linear-gradient(135deg, #ffd166 0%, #ffecd2 100%); }
+        .nav-btn.special { background: linear-gradient(135deg, #9b59b6 0%, #764ba2 100%); }
+
+        /* Mantener el título de ETBs con un acento rojo pero sutil */
+        #etb .section-title { color: #2c3e50; }
+
+        .section-title {
+            font-size: 36px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 0; /* centered via flex container */
+            line-height: 1.1;
+        }
+
+        .section-description {
+            font-size: 18px;
+            color: #7f8c8d;
+            margin: 0;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 100%;
+            /* Make grid rows equal height so product cards align uniformly */
+            grid-auto-rows: 1fr;
+        }
+
+        @media (min-width: 1200px) {
+            .products-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (min-width: 900px) and (max-width: 1199px) {
+            .products-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (min-width: 600px) and (max-width: 899px) {
+            .products-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .product-card {
+            background: var(--retro-card);
+            border-radius: 4px;
+            padding: 14px;
+            box-shadow: 6px 6px 0 rgba(0,0,0,0.12);
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
+            border: 4px solid var(--retro-dark);
+            /* Ensure each card fills the grid cell and can be flexibly laid out */
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            /* left-align children so badges and text don't stretch full width */
+            align-items: flex-start;
+            font-family: 'Segoe UI', Tahoma, Verdana, sans-serif;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            border-color: #3498db;
+        }
+
+        .product-image {
+            width: 100%;
+            /* Area de imagen ampliada para que las imágenes se vean completas */
+            height: 240px; /* antes 160px */
+            border-radius: 10px;
+            margin-bottom: 12px;
+            position: relative;
+            overflow: hidden;
+            /* fondo transparente para evitar color naranja visible cuando la imagen cambia */
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto; /* keep image area fixed inside flex card */
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            /* Mostrar la imagen completa sin recortar */
+            object-fit: contain; /* antes: cover */
+            border-radius: 10px;
+            transition: transform 0.3s ease;
+            background-color: transparent;
+        }
+
+        .product-image img:hover {
+            transform: scale(1.05);
+        }
+
+        .product-image .fallback-icon {
+            font-size: 48px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .product-name {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--retro-dark);
+            margin: 0 0 6px 0;
+            line-height: 1.15;
+            font-family: 'Press Start 2P', monospace;
+            text-transform: uppercase;
+        }
+
+        .product-price {
+            display: inline-flex;
+            align-items: center;
+            align-self: flex-start; /* keep badge snug to the left */
+            white-space: nowrap;
+            font-size: 18px;
+            font-weight: 900;
+            color: #fff;
+            background: var(--retro-dark);
+            padding: 6px 10px;
+            border-radius: 6px;
+            /* reduce bottom margin and add a small right margin so status sits close */
+            margin: 0 8px 6px 0;
+            font-family: 'Press Start 2P', monospace;
+            letter-spacing: 0.02em;
+        }
+
+        /* product-description elements removed from HTML (no CSS hide needed) */
+
+        .product-status {
+            display: inline-flex;
+            align-items: center;
+            align-self: flex-start; /* badge sits to the left and only as wide as needed */
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin: 0; /* ensure it sits close to the price */
+        }
+
+        .status-available {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .status-limited {
+            background: #f39c12;
+            color: white;
+        }
+
+        .status-preorder {
+            background: #9b59b6;
+            color: white;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .shop-title {
+                font-size: 36px;
+            }
+
+            .nav-buttons {
+                grid-template-columns: 1fr;
+            }
+
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-title {
+                font-size: 28px;
+            }
+            /* Make nav buttons stack nicely on small screens */
+            .nav-buttons {
+                flex-direction: column;
+                gap: 12px;
+            }
+            .nav-btn {
+                width: 100%;
+                min-width: unset;
+                max-width: unset;
+                padding: 14px;
+            }
+                /* icon oculto en pantallas pequeñas también */
+                .nav-btn .icon { display:none; }
+        }
+
+        /* Free-shipping floating banner styles */
+        #free-shipping-banner {
+            position: fixed;
+            bottom: 22px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 12000;
+            width: min(1100px, calc(100% - 40px));
+            pointer-events: auto;
+        }
+        #free-shipping-banner .fs-inner{
+            background: linear-gradient(90deg, rgba(40,58,86,0.95), rgba(32,44,66,0.95));
+            color: #fff;
+            padding: 12px 48px 12px 18px;
+            border-radius: 999px;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.03);
+            overflow: hidden;
+            position: relative;
+        }
+        #free-shipping-banner .fs-marquee{
+            display: inline-block;
+            white-space: nowrap;
+            will-change: transform;
+            animation: fs-marquee 12s linear infinite;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 16px;
+            letter-spacing: 0.02em;
+        }
+        @keyframes fs-marquee{
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        #free-shipping-banner .fs-close{
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            color: rgba(255,255,255,0.9);
+            border: none;
+            font-size: 20px;
+            line-height: 1;
+            padding: 8px 10px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+        #free-shipping-banner .fs-close:focus{ outline: 2px solid rgba(255,255,255,0.2); }
+
+        @media (max-width: 600px){
+            #free-shipping-banner { bottom: 14px; width: calc(100% - 28px); }
+            #free-shipping-banner .fs-inner{ padding: 10px 40px 10px 12px; }
+            #free-shipping-banner .fs-marquee{ font-size: 13px; animation-duration: 10s; }
+            #free-shipping-banner .fs-close{ font-size: 18px; }
+        }
+
+    </style>
+  <style>@view-transition { navigation: auto; }</style>
+    <script>
+        (function loadIfExists(path){
+            try{
+                fetch(path, {method: 'HEAD'}).then(function(res){
+                    if(res && res.ok){
+                        var s = document.createElement('script');
+                        s.src = path;
+                        s.defer = true;
+                        document.head.appendChild(s);
+                    }
+                }).catch(function(){ /* silencio: no disponible */ });
+            }catch(e){ /* entorno sin fetch */ }
+        })("_sdk/data_sdk.js");
+    </script>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+    <!-- Free shipping banner - floating, responsive, non-intrusive -->
+    <div id="free-shipping-banner" role="region" aria-label="Anuncio envío gratuito">
+        <div class="fs-inner">
+            <div class="fs-marquee">Disfruta de envío gratuito en compras superiores a 200€ — ¡Aprovecha ahora!</div>
+        </div>
+        <button class="fs-close" aria-label="Cerrar anuncio">×</button>
+    </div>
+    <div class="scale-fallback">
+  <div class="container"><!-- Página Principal -->
+   <div id="home" class="page active">
+    <header class="header">
+    <div class="logo">
+     <img src="images/TEJAS.png" alt="Tejón Shop" class="site-logo">
+    </div>
+     <h1 class="shop-title">Tejón Shop</h1>
+     <p class="shop-tagline">Tu tienda de confianza para Pokémon TCG</p>
+        <!-- Social links: PNG logos will be used (place your files in images/) -->
+        <div class="social-links" aria-label="Redes de la tienda">
+            <a class="social-link wallapop" href="https://www.wallapop.com/user/pepem-8333370?_pid=wi&_uid=57653256" target="_blank" rel="noopener noreferrer" title="Wallapop">
+                <img src="images/wallapop.png" alt="Wallapop" />
+            </a>
+            <a class="social-link whatsapp" href="https://wa.me/34660581794" target="_blank" rel="noopener noreferrer" title="WhatsApp">
+                <img src="images/whatsapp.png" alt="WhatsApp" />
+            </a>
+        </div>
+    
+    </header>
+        <div class="nav-screen">
+            <div class="nav-screen-inner">
+                <div class="nav-buttons">
+            <button class="nav-btn etb" onclick="showPage('etb')">
+                <span class="icon"></span>
+                <span>
+                    <span class="label">ETBs</span>
+                    <span class="sub">Cajas de Entrenador Élite</span>
+                </span>
+            </button>
+
+            <button class="nav-btn boxes" onclick="showPage('boxes')">
+                <span class="icon"></span>
+                <span>
+                    <span class="label">Cajas de Sobres</span>
+                    <span class="sub">Booster Boxes</span>
+                </span>
+            </button>
+
+            <button class="nav-btn premium" onclick="showPage('premium')">
+                <span class="icon"></span>
+                <span>
+                    <span class="label">Colecciones Premium</span>
+                    <span class="sub">Cajas exclusivas con promocionales y mucho más... </span>
+                </span>
+            </button>
+
+                    <!-- Botones claros adicionales solicitados (ahora con color por categoría) -->
+                    <button class="nav-btn clear latas" onclick="showPage('latas')">
+                        <span class="icon"></span>
+                        <span>
+                            <span class="label">Latas</span>
+                            <span class="sub">Latas con sobres y accesorios </span>
+                        </span>
+                    </button>
+
+                    <button class="nav-btn clear bundle" onclick="showPage('bundle')">
+                        <span class="icon"></span>
+                        <span>
+                            <span class="label">Booster Bundle</span>
+                            <span class="sub">Cajas con sobres sueltos</span>
+                        </span>
+                    </button>
+
+                    <button class="nav-btn clear otros" onclick="showPage('otros')">
+                        <span class="icon"></span>
+                        <span>
+                            <span class="label">Otros</span>
+                            <span class="sub">Sobres sueltos, accesorios y mucho más... </span>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+   </div><!-- Página ETBs -->
+        <div id="etb" class="page overlay">
+         <div class="section-header">
+          <h2 class="section-title">ETBs</h2>
+          <button class="back-btn" onclick="showPage('home')">← Volver al menú</button>
+         </div>
+    <div class="products-grid">
+        <div class="product-card">
+    <div class="product-image"><img src="images/pokemon_etb_phantasmal_flames.png" alt="Pokemon ETB phastasmal Flames" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>👑</div>';">
+      </div>
+      <h3 class="product-name">Pokemon ETB Phantasmal Flames Inglés</h3>
+    <p class="product-price">95€</p>
+    <span class="product-status status-available">Disponible</span>
+     </div>
+     <div class="product-card">
+    <div class="product-image"><img src="images/pokemon_etb_zenit_supremo.png" alt="Pokemon ETB Zenit Supremo" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>👑</div>';">
+      </div>
+      <h3 class="product-name">Pokemon ETB Zenit Supremo Español</h3>
+    <p class="product-price">115€</p>
+    <span class="product-status status-available">Disponible</span>
+     </div>
+     <div class="product-card">
+    <div class="product-image"><img src="images/pokemon_etb_tempestad_plateada.png" alt="Pokemon ETB Tempestad Plateada" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>⚡</div>';">
+      </div>
+      <h3 class="product-name">Pokemon ETB Tempestad Plateada Español</h3>
+    <p class="product-price">70€</p>
+    <span class="product-status status-available">Disponible</span>
+     </div>
+     <div class="product-card">
+    <div class="product-image"><img src="images/etb_mega_evoluciones_garde.png" alt="ETB Mega Evoluciones" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🔥</div>';">
+      </div>
+      <h3 class="product-name">ETB Mega Evoluciones Español</h3>
+    <p class="product-price">65€</p>
+    <span class="product-status status-available">Disponible</span>
+     </div>
+     <div class="product-card">
+    <div class="product-image"><img src="images/pokemon_etb_chispas_fulgurantes.png" alt="Pokemon ETB Chispas Fulgurantes" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>⚡</div>';">
+      </div>
+      <h3 class="product-name">Pokemon ETB Chispas Fulgurantes Español</h3>
+    <p class="product-price">65€</p>
+    <span class="product-status status-available">Disponible</span>
+     </div>
+     <div class="product-card">
+    <div class="product-image"><img src="images/pokemon_etb_evoluciones_de_paldea.png" alt="Pokemon ETB Evoluciones de Paldea" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🌟</div>';">
+      </div>
+      <h3 class="product-name">Pokemon ETB Evoluciones de Paldea Español</h3>
+    <p class="product-price">65€</p>
+    <span class="product-status status-available">Disponible</span>
+     </div>
+     <div class="product-card">
+    <div class="product-image"><img src="images/etb_mega_evoluciones.png" alt="ETB Mega Evoluciones Lucario" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🥊</div>';">
+      </div>
+      <h3 class="product-name">ETB Mega Evoluciones Lucario Español</h3>
+    <p class="product-price">60€</p>
+    <span class="product-status status-available">Disponible</span>
+     </div>
+     <div class="product-card">
+    <div class="product-image"><img src="images/pokemon_etb_fulgor_negro.png" alt="Pokemon ETB Fulgor Negro" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🌑</div>';">
+      </div>
+      <h3 class="product-name">Pokemon ETB Fulgor Negro Español</h3>
+    <p class="product-price">60€</p>
+    <span class="product-status status-available">Disponible</span>
+     </div>
+    </div>
+   </div><!-- Página Cajas de Sobres -->
+        <div id="boxes" class="page overlay">
+    <div class="section-header">
+     <h2 class="section-title">Cajas de Sobres</h2>
+     <button class="back-btn" onclick="showPage('home')">← Volver al menú</button>
+    </div>
+    <div class="products-grid">
+     <div class="product-card">
+    <div class="product-image"><img src="images/chispas_fulgurantes_booster_box.png" alt="Chispas Fulgurantes Booster Box" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>📦</div>';">
+      </div>
+      <h3 class="product-name">Chispas Fulgurantes Booster Box Español</h3>
+    <p class="product-price">185€</p>
+    <span class="product-status status-available">Disponible</span>
+     </div>
+     <div class="product-card">
+    <div class="product-image"><img src="images/obsidian_flames_booster_box.png" alt="Obsidian Flames Booster Box" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🎯</div>';">
+      </div>
+      <h3 class="product-name">Obsidian Flames Booster Box Español</h3>
+    <p class="product-price">165€</p>
+    <span class="product-status status-available">Stock Disponible</span>
+     </div>
+     <div class="product-card">
+    <div class="product-image"><img src="images/destined_rivals_booster_box.png" alt="Destined Rivals Booster Box" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🌊</div>';">
+      </div>
+      <h3 class="product-name">Destined Rivals Booster Box Español</h3>
+    <p class="product-price">240€</p>
+    <span class="product-status status-available">Disponible</span>
+     </div>
+     <div class="product-card">
+    <div class="product-image"><img src="images/megaevoluciones_booster_box.png" alt="Megaevoluciones Booster Box" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>💎</div>';">
+      </div>
+      <h3 class="product-name">Megaevoluciones Booster Box Español</h3>
+    <p class="product-price">90€</p>
+    <span class="product-status status-available">Disponible</span>
+     </div>
+    </div>
+   </div><!-- Página Colecciones Premium -->
+        <div id="premium" class="page overlay">
+    <div class="section-header">
+     <h2 class="section-title">Colecciones Premium</h2>
+     <button class="back-btn" onclick="showPage('home')">← Volver al menú</button>
+    </div>
+    <div class="products-grid">
+     <div class="product-card">
+    <div class="product-image"><img src="images/Destinos_de_Paldea_Premium_Collection.png" alt="Destinos de Paldea Premium Collection" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>👑</div>';">
+      </div>
+      <h3 class="product-name">Destinos de Paldea Premium Collection</h3>
+    <p class="product-price">65€</p>
+    <span class="product-status status-available">Disponible</span>
+     </div>
+     <div class="product-card">
+    <div class="product-image"><img src="images/Lillie_Premium_Tournament_Collection_Ingles.png" alt="Lillie Premium Tournament Collection - Inglés" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🎨</div>';">
+      </div>
+      <h3 class="product-name">Lillie Premium Tournament Collection Inglés</h3>
+    <p class="product-price">50€</p>
+    <span class="product-status status-available">Disponible</span>
+     </div>
+     <div class="product-card">
+    <div class="product-image"><img src="images/151_chino.png" alt="151 chino" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🎨</div>';">
+      </div>
+      <h3 class="product-name">151 vol.3 - Chino</h3>
+    <p class="product-price">85€</p>
+    <span class="product-status status-available">Disponible</span>
+     </div>
+     <div class="product-card">
+    <div class="product-image"><img src="images/blister_prismatic.png" alt="blister Prismatic" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🎨</div>';">
+      </div>
+      <h3 class="product-name"> Caja Prismatic Evolutions Tech Sticker Blister Inglés (sellado)</h3>
+    <p class="product-price">490€</p>
+    <span class="product-status status-available">Disponible</span>
+     </div>
+     <div class="product-card">
+    <div class="product-image"><img src="images/Caja_Morpeko_V_Union_Premium Playmat_Español.png" alt="Caja Morpeko V Union Premium Playmat - Español" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>👑</div>';">
+      </div>
+      <h3 class="product-name">Caja Morpeko V Union Premium Playmat Español</h3>
+    <p class="product-price">50€</p>
+    <span class="product-status status-available">Disponible</span>
+     </div>
+     <div class="product-card">
+    <div class="product-image"><img src="images/UPC_Prismatic_Evolution_Español.png" alt=" UPC Prismatic Evolution Español" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🏆</div>';">
+      </div>
+      <h3 class="product-name">UPC Prismatic Evolution Español</h3>
+    <p class="product-price">140€</p>
+    <span class="product-status status-available">Disponible</span>
+     </div>
+     <div class="product-card">
+    <div class="product-image"><img src="images/UPC_Fuegos_Fantasmales_Español.png" alt="UPC Fuegos Fantasmales Español" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>✨</div>';">
+      </div>
+      <h3 class="product-name">UPC Fuegos Fantasmales Español</h3>
+    <p class="product-price">200€</p>
+    <span class="product-status status-preorder">Stock disponible próximamente</span>
+     </div>
+    </div>
+   </div><!-- Página Latas y Packs Especiales -->
+        <!-- Nueva sección: Latas -->
+            <div id="latas" class="page overlay">
+                <div class="section-header">
+                 <h2 class="section-title">Latas</h2>
+                 <button class="back-btn" onclick="showPage('home')">← Volver al menú</button>
+                </div>
+            <div class="products-grid">
+             <div class="product-card">
+                <div class="product-image"><img src="images/Pokeball_C23.png" alt="Pokeball C23" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🥫</div>';"></div>
+                <h3 class="product-name">Pokeball C23</h3>
+                <p class="product-price">35€</p>
+                <span class="product-status status-available">Disponible</span>
+             </div>
+             <div class="product-card">
+                <div class="product-image"><img src="images/Latas_Cenit_Supremo – Galar Moltres, Articuno y Zapdos.png" alt="Latas Cenit Supremo – Galar Moltres, Articuno y Zapdos" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🥫</div>';"></div>
+                <h3 class="product-name">Latas Cenit Supremo – Galar Moltres, Articuno y Zapdos Español</h3>
+                <p class="product-price">50€</p>
+                <span class="product-status status-available">Disponible</span>
+             </div>
+             <div class="product-card">
+                <div class="product-image"><img src="images/Mini_latas_amigos_de_Kanto.png" alt="Mini latas amigos de Kanto" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🥫</div>';"></div>
+                <h3 class="product-name">Mini latas amigos de Kanto Español</h3>
+                <p class="product-price">80€</p>
+                <span class="product-status status-available">Disponible</span>
+             </div>
+             <div class="product-card">
+                <div class="product-image"><img src="images/Mini_lata_umbreon.png" alt="Mini Lata Umbreon Prismatic Evolutions - Inglés" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🥫</div>';"></div>
+                <h3 class="product-name">Mini Lata Umbreon Prismatic Evolutions Inglés</h3>
+                <p class="product-price">28€</p>
+                <span class="product-status status-available">Disponible</span>
+             </div>
+             <div class="product-card">
+                <div class="product-image"><img src="images/Case_sellado_mini_latas_prismatic.png" alt="Case Sellado Mini Latas Prismatic Evolutions - Español" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🥫</div>';"></div>
+                <h3 class="product-name">Case Sellado Mini Latas Prismatic Evolutions Español</h3>
+                <p class="product-price">140€</p>
+                <span class="product-status status-available">Disponible</span>
+             </div>
+            </div>
+         </div>
+
+        <!-- Nueva sección: Booster Bundle / Sobres sueltos -->
+            <div id="bundle" class="page overlay">
+                <div class="section-header">
+                 <h2 class="section-title">Booster Bundle</h2>
+                 <button class="back-btn" onclick="showPage('home')">← Volver al menú</button>
+                </div>
+            <div class="products-grid">
+             <div class="product-card">
+                <div class="product-image"><img src="images/Booster_bundle_prismatic.png" alt="Booster Bundle Prismatic Evolutions" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🎁</div>';"></div>
+                <h3 class="product-name">Booster Bundle Prismatic Evolutions Inglés</h3>
+                <p class="product-price">65€</p>
+                <span class="product-status status-available">Disponible</span>
+             </div>
+             <div class="product-card">
+                <div class="product-image"><img src="images/Booster_bundle_prismatic.png" alt="Booster Bundle Prismatic Evolutions" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🎁</div>';"></div>
+                <h3 class="product-name">Booster Bundle Prismatic Evolutions Español</h3>
+                <p class="product-price">55€</p>
+                <span class="product-status status-available">Disponible</span>
+             </div>
+             <div class="product-card">
+                <div class="product-image"><img src="images/Booster_bundle_paldea.png" alt="Booster Bundle Paldea" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>🎁</div>';"></div>
+                <h3 class="product-name"> Display Booster Bundle Destinos de Paldea Español</h3>
+                <p class="product-price">650€</p>
+                <span class="product-status status-available">Disponible</span>
+             </div>
+            </div>
+         </div>
+
+        <!-- Nueva sección: Otros -->
+            <div id="otros" class="page overlay">
+                <div class="section-header">
+                 <h2 class="section-title">Otros</h2>
+                 <button class="back-btn" onclick="showPage('home')">← Volver al menú</button>
+                </div>
+            <div class="products-grid">
+             <div class="product-card">
+                <div class="product-image"><img src="images/cielos_sobre.png" alt="Sobre cielos evolutivos" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>⚔️</div>';"></div>
+                <h3 class="product-name">Sobre Cielos Evolutivos Español</h3>
+                <p class="product-price">15€</p>
+                <span class="product-status status-available">Disponible</span>
+             </div>
+             <div class="product-card">
+                <div class="product-image"><img src="images/TopLoader.png" alt="Top loader" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>⚔️</div>';"></div>
+                <h3 class="product-name">Top Loader UltraPro</h3>
+                <p class="product-price">3,99€</p>
+                <span class="product-status status-available">Disponible</span>
+             </div>
+             <div class="product-card">
+                <div class="product-image"><img src="images/Fundas.png" alt="Fundas" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>⚔️</div>';"></div>
+                <h3 class="product-name">Fundas UltraPro</h3>
+                <p class="product-price">2,50€</p>
+                <span class="product-status status-available">Disponible</span>
+             </div>
+             <div class="product-card">
+                <div class="product-image"><img src="images/Acrilico.png" alt="Acrílico" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'fallback-icon\'>⚔️</div>';"></div>
+                <h3 class="product-name">Acrílico Booster Box</h3>
+                <p class="product-price">25€</p>
+                <span class="product-status status-available">Disponible</span>
+             </div>
+            </div>
+         </div>
+  </div>
+  </div>
+  <script>
+        // Small script to handle free-shipping banner close action
+        (function(){
+            try{
+                const banner = document.getElementById('free-shipping-banner');
+                if(!banner) return;
+                const btn = banner.querySelector('.fs-close');
+                btn.addEventListener('click', function(){
+                    banner.style.display = 'none';
+                });
+                // Pause marquee on hover for accessibility
+                const marquee = banner.querySelector('.fs-marquee');
+                banner.addEventListener('mouseenter', ()=> marquee.style.animationPlayState = 'paused');
+                banner.addEventListener('mouseleave', ()=> marquee.style.animationPlayState = 'running');
+            }catch(e){/* ignore in older browsers */}
+        })();
+
+        // Configuración por defecto
+        const defaultConfig = {
+            shop_name: "Tejón Shop",
+            shop_tagline: "Tu tienda de confianza para Pokémon TCG",
+            contact_info: "WhatsApp: +1234567890"
+        };
+
+    // Función para mostrar páginas (in-page). Si se abre una sección, actualiza el hash
+    // para que el botón atrás del navegador vuelva al menú.
+    function showPage(pageId) {
+            // Ocultar todas las páginas
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => {
+                page.classList.remove('active');
+            });
+
+            // Mostrar la página seleccionada
+            const targetPage = document.getElementById(pageId);
+            if (targetPage) {
+                targetPage.classList.add('active');
+            }
+
+            // Actualizar el hash del URL para habilitar el botón Atrás.
+            try {
+                if (pageId && pageId !== 'home') {
+                    if (location.hash !== '#' + pageId) location.hash = pageId;
+                } else {
+                    // volver al home: limpiar hash
+                    if (location.hash) history.pushState(null, '', location.pathname + location.search);
+                }
+            } catch (e) { /* no bloquear por historial */ }
+
+            // Scroll al inicio del overlay o página
+            window.scrollTo(0, 0);
+        }
+
+        // Abrir sección en nueva ventana/pestaña (mantiene hash para mostrar la sección al cargar)
+        function openInNewWindow(pageId) {
+            try {
+                const base = location.pathname;
+                const url = base + '#' + pageId;
+                window.open(url, '_blank');
+            } catch (e) { console.error(e); }
+        }
+
+        // Mostrar sección basada en el hash al cargar o cuando cambie
+        window.addEventListener('DOMContentLoaded', function(){
+            if (location.hash) {
+                const id = location.hash.substring(1);
+                if (id) showPage(id);
+            }
+        });
+        window.addEventListener('hashchange', function(){
+            const id = location.hash.substring(1);
+            if (id) showPage(id);
+        });
+
+        // Función para actualizar la configuración
+        async function onConfigChange(config) {
+            const shopName = config.shop_name || defaultConfig.shop_name;
+            const shopTagline = config.shop_tagline || defaultConfig.shop_tagline;
+            const contactInfo = config.contact_info || defaultConfig.contact_info;
+
+            // Actualizar elementos del DOM
+            const titleElement = document.querySelector('.shop-title');
+            const taglineElement = document.querySelector('.shop-tagline');
+            const contactElement = document.querySelector('.contact-info');
+
+            if (titleElement) titleElement.textContent = shopName;
+            if (taglineElement) taglineElement.textContent = shopTagline;
+            if (contactElement) contactElement.textContent = contactInfo;
+        }
+
+        // Configuración de capacidades
+        function mapToCapabilities(config) {
+            return {
+                recolorables: [],
+                borderables: [],
+                fontEditable: undefined,
+                fontSizeable: undefined
+            };
+        }
+
+        // Mapeo de valores del panel de edición
+        function mapToEditPanelValues(config) {
+            return new Map([
+                ["shop_name", config.shop_name || defaultConfig.shop_name],
+                ["shop_tagline", config.shop_tagline || defaultConfig.shop_tagline],
+                ["contact_info", config.contact_info || defaultConfig.contact_info]
+            ]);
+        }
+
+        // Inicializar SDK cuando esté disponible
+        if (window.elementSdk) {
+            window.elementSdk.init({
+                defaultConfig,
+                onConfigChange,
+                mapToCapabilities,
+                mapToEditPanelValues
+            });
+        }
+    </script>
+        
+</body>
+</html>
